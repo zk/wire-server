@@ -8,13 +8,17 @@ module Brig.Options where
 import Brig.Types
 import Brig.User.Auth.Cookie.Limit
 import Brig.Whitelist (Whitelist (..))
+import Control.Monad.Catch (catch, SomeException(..))
+import Data.Yaml (FromJSON(..), (.:), (.:?))
 import Data.ByteString (ByteString)
 import Data.ByteString.Conversion
 import Data.Int (Int64)
 import Data.Maybe
 import Data.Misc (HttpsUrl)
 import Data.Monoid
+import Data.Scientific (toRealFloat, toBoundedInteger)
 import Data.Text (Text)
+import Data.Text.Encoding (encodeUtf8)
 import Data.Time.Clock (DiffTime, secondsToDiffTime)
 import Data.Word (Word16, Word32)
 import Database.V5.Bloodhound (IndexName (..))
@@ -25,6 +29,7 @@ import Options.Applicative.Types (readerAsk)
 import qualified Brig.Aws.Types        as Aws
 import qualified Data.ByteString.Char8 as C
 import qualified Data.Text             as T
+import qualified Data.Yaml             as Y
 import qualified Ropes.Aws             as Aws
 import qualified Ropes.Nexmo           as Nexmo
 import qualified Ropes.Twilio          as Twilio
@@ -124,6 +129,196 @@ data Settings = Settings
     , setUserCookieThrottle :: !CookieThrottle
     , setDefaultLocale      :: !Locale
     }
+
+-- TODO: move FromJSON intances to separate module
+instance FromJSON ZAuth.UserTokenTimeout where
+  parseJSON (Y.Number n) =
+    let defaultV = 60 * 60 * 24 * 28 -- 28 days
+        bounded = toBoundedInteger n :: Maybe Int64
+    in pure $ ZAuth.UserTokenTimeout $ maybe defaultV fromIntegral bounded
+
+instance FromJSON ZAuth.SessionTokenTimeout where
+  parseJSON (Y.Number n) =
+    let defaultV = 60 * 60 * 24 * 1 -- 1 day
+        bounded = toBoundedInteger n :: Maybe Int64
+    in pure $ ZAuth.SessionTokenTimeout $ maybe defaultV fromIntegral bounded
+
+instance FromJSON ZAuth.AccessTokenTimeout where
+  parseJSON (Y.Number n) =
+    let defaultV = 60 * 15 -- 15 minutes
+        bounded = toBoundedInteger n :: Maybe Int64
+    in pure $ ZAuth.AccessTokenTimeout $ maybe defaultV fromIntegral bounded
+
+instance FromJSON ZAuth.ProviderTokenTimeout where
+  parseJSON (Y.Number n) =
+    let defaultV = 60 * 60 * 24 * 7 -- 7 days
+        bounded = toBoundedInteger n :: Maybe Int64
+    in pure $ ZAuth.ProviderTokenTimeout $ maybe defaultV fromIntegral bounded
+
+instance FromJSON Aws.Account where
+  parseJSON (Y.String str) =
+    pure $ Aws.Account str
+
+instance FromJSON Aws.SesQueue where
+  parseJSON (Y.String str) =
+    pure $ Aws.SesQueue str
+
+instance FromJSON Aws.InternalQueue where
+  parseJSON (Y.String str) =
+    pure $ Aws.InternalQueue str
+
+instance FromJSON Aws.BlacklistTable where
+  parseJSON (Y.String str) =
+    pure $ Aws.BlacklistTable str
+
+instance FromJSON Aws.PreKeyTable where
+  parseJSON (Y.String str) =
+    pure $ Aws.PreKeyTable str
+
+instance FromJSON Aws.AccessKeyId where
+  parseJSON (Y.String str) =
+    pure $ Aws.AccessKeyId $ encodeUtf8 str
+
+instance FromJSON Aws.SecretAccessKey where
+  parseJSON (Y.String str) =
+    pure $ Aws.SecretAccessKey $ encodeUtf8 str
+
+instance FromJSON ZAuth.Settings where
+  parseJSON (Y.Object v) =
+    ZAuth.Settings <$>
+    v .: "key-index" <*>
+    v .: "user-token-timeout" <*>
+    v .: "session-token-timeout" <*>
+    v .: "access-token-timeout" <*>
+    v .: "provider-token-timeout"
+
+instance FromJSON Opts where
+  parseJSON (Y.Object v) =
+    Opts <$>
+    v .: "host" <*>
+    v .: "port" <*>
+    v .: "cassandra-host" <*>
+    v .: "cassandra-port" <*>
+    v .: "cassandra-keyspace" <*>
+    v .: "elasticsearch-url" <*>
+    v .: "user-index" <*>
+    v .: "galley-host" <*>
+    v .: "galley-port" <*>
+    v .: "gundeck-host" <*>
+    v .: "gundeck-port" <*>
+    v .: "aws-account" <*>
+    v .: "aws-ses-queue" <*>
+    v .: "aws-internal-queue" <*>
+    v .: "aws-blacklist-table" <*>
+    v .: "aws-pre-key-table" <*>
+    v .: "aws-key-id" <*>
+    v .: "aws-secret-key" <*>
+    v .: "template-dir" <*>
+    v .: "email-sender" <*>
+    v .: "twilio-sender" <*>
+    v .: "user-activation-url" <*>
+    v .: "user-sms-activation-url" <*>
+    v .: "user-password-reset-url" <*>
+    v .: "user-invitation-url" <*>
+    v .: "user-deletion-user-url" <*>
+    v .: "provider-home-url" <*>
+    v .: "provider-activation-url" <*>
+    v .: "provider-approval-url" <*>
+    v .: "provider-approval-to" <*>
+    v .: "team-invitation-url" <*>
+    v .: "zauth-private-keys" <*>
+    v .: "zauth-public-keys" <*>
+    v .: "zauth-settings" <*>
+    v .:? "disco-url" <*>
+    v .:? "geo-db" <*>
+    v .: "turn-servers" <*>
+    v .: "turn-secret" <*>
+    v .: "turn-lifetime" <*>
+    v .: "settings"
+
+instance FromJSON ActivationTimeout where
+  parseJSON (Y.Number n) =
+    let defaultV = 3600
+        bounded = toBoundedInteger n :: Maybe Int64
+    in pure $ ActivationTimeout $ secondsToDiffTime $ maybe defaultV fromIntegral bounded
+
+instance FromJSON Twilio.SID where
+  parseJSON (Y.String str) =
+    pure $ Twilio.SID $ encodeUtf8 str
+
+instance FromJSON Twilio.AccessToken where
+  parseJSON (Y.String str) =
+    pure $ Twilio.AccessToken $ encodeUtf8 str
+
+instance FromJSON Nexmo.ApiKey where
+  parseJSON (Y.String str) =
+    pure $ Nexmo.ApiKey $ encodeUtf8 str
+
+instance FromJSON Nexmo.ApiSecret where
+  parseJSON (Y.String str) =
+    pure $ Nexmo.ApiSecret $ encodeUtf8 str
+
+instance FromJSON Nexmo.ApiEndpoint where
+  parseJSON (Y.String str) =
+    case str of
+      "production" -> pure Nexmo.Production
+      "sandbox" -> pure Nexmo.Sandbox
+      _ -> pure Nexmo.Production
+
+instance FromJSON Request where
+  parseJSON (Y.String str) =
+    pure $ fromMaybe "Invalid request URL" (parseRequest (T.unpack str))
+
+instance FromJSON ByteString where
+  parseJSON (Y.String str) =
+    pure $ encodeUtf8 str
+
+instance FromJSON RetryAfter where
+  parseJSON (Y.Number n) =
+    pure $ RetryAfter $ fromMaybe 0 (toBoundedInteger n)
+
+instance FromJSON StdDev where
+  parseJSON (Y.Number n) =
+    pure $ StdDev $ toRealFloat n
+
+instance FromJSON CookieThrottle where
+  parseJSON (Y.Object v) =
+    StdDevThrottle <$>
+    v .: "std-dev" <*>
+    v .: "retry-after"
+
+instance FromJSON CookieLimit where
+  parseJSON (Y.Number n) =
+    CookieLimit <$>
+    let defaultV = 0
+        bounded = toBoundedInteger n :: Maybe Int64
+    in pure $ maybe defaultV fromIntegral bounded
+
+instance FromJSON Settings where
+  parseJSON (Y.Object v) =
+    Settings <$>
+    v .: "activation-timeout" <*>
+    v .: "twilio-sid" <*>
+    v .: "twilio-token" <*>
+    v .: "nexmo-key" <*>
+    v .: "nexmo-secret" <*>
+    v .: "nexmo-endpoint" <*>
+    v .:? "whitelist" <*>
+    v .: "user-max-connections" <*>
+    v .: "cookie-domain" <*>
+    v .: "cookie-insecure" <*>
+    v .: "user-cookie-renew-age" <*>
+    v .: "user-cookie-limit" <*>
+    v .: "user-cookie-throttle" <*>
+    v .: "default-locale"
+
+instance FromJSON Whitelist where
+  parseJSON (Y.Object v) =
+    Whitelist <$>
+    v .: "url" <*>
+    v .: "user" <*>
+    v .: "pass"
+  parseJSON _ = pure $ Whitelist "" "" ""
 
 parseOptions :: IO Opts
 parseOptions = execParser (info (helper <*> optsParser) desc)
