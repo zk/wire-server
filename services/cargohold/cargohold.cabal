@@ -94,6 +94,7 @@ library
       , wai-utilities        >= 0.16.1
       , warp                 >= 3.0
       , xml-conduit          >= 1.3
+      , yaml
 
 executable cargohold
     main-is:            src/Main.hs
@@ -110,6 +111,7 @@ executable cargohold
         base
       , cargohold
       , HsOpenSSL >= 0.11
+      , yaml
 
     if flag(static)
         ld-options: -static
