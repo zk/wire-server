@@ -14,5 +14,5 @@ main = withOpenSSL $ do
   configFile <- decodeConfigFile "galley.yaml"
   case configFile of
     -- TODO: report config file errors
-    Left err -> print err --parseOptions >>= run
+    Left _ -> parseOptions >>= run
     Right opts -> run opts
