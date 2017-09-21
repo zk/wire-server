@@ -1,18 +1,23 @@
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE StrictData #-}
 
 module CargoHold.Options (Opts (..), parseOptions) where
 
 import CargoHold.CloudFront (Domain (..), KeyPairId (..))
 import Control.Applicative
+import Data.Aeson.Types (typeMismatch)
 import Data.ByteString (ByteString)
 import Data.Monoid
 import Data.Text (Text)
+import Data.Text.Encoding (encodeUtf8)
 import Data.Word
+import Data.Yaml (FromJSON(..), (.:), (.:?))
 import Options.Applicative
 import Ropes.Aws (AccessKeyId (..), SecretAccessKey (..))
 
 import qualified Data.ByteString.Char8 as C
 import qualified Data.Text             as T
+import qualified Data.Yaml             as Y
 
 data Opts = Opts
     { optHost            :: String
@@ -25,6 +30,35 @@ data Opts = Opts
     , optAwsCFPrivateKey :: FilePath
     , optMaxTotalBytes   :: Int
     } deriving (Eq)
+
+instance FromJSON Opts where
+  parseJSON (Y.Object v) =
+    Opts <$>
+    v .: "host" <*>
+    v .: "port" <*>
+    v .:? "aws-key-id" <*>
+    v .:? "aws-sec-key" <*>
+    v .: "aws-s3-bucket" <*>
+    v .: "aws-cf-domain" <*>
+    v .: "aws-cf-keypair-id" <*>
+    v .: "aws-cf-private-key" <*>
+    v .: "max-total-bytes"
+
+instance FromJSON AccessKeyId where
+  parseJSON (Y.String str) =
+    pure $ AccessKeyId $ encodeUtf8 str
+
+instance FromJSON SecretAccessKey where
+  parseJSON (Y.String str) =
+    pure $ SecretAccessKey $ encodeUtf8 str
+
+instance FromJSON KeyPairId where
+  parseJSON (Y.String str) =
+    pure $ KeyPairId $ encodeUtf8 str
+
+instance FromJSON Domain where
+  parseJSON (Y.String str) =
+    pure $ Domain $ encodeUtf8 str
 
 parseOptions :: IO Opts
 parseOptions = execParser (info (helper <*> optsParser) desc)
