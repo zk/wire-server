@@ -116,6 +116,7 @@ library
         , wai-routing           >= 0.12
         , wai-utilities         >= 0.16
         , warp                  >= 3.2
+        , yaml
 
 executable gundeck
     default-language:  Haskell2010
@@ -132,6 +133,7 @@ executable gundeck
         , transformers
         , types-common
         , uuid
+        , yaml
 
     if flag(static)
         ld-options: -static

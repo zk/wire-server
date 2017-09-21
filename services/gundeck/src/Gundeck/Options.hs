@@ -37,14 +37,21 @@ module Gundeck.Options
 
 import Cassandra hiding (Error)
 import Control.Lens hiding ((.=))
+import Data.Aeson.Types (typeMismatch)
 import Data.Text (Text, pack)
+import Data.Text.Encoding (encodeUtf8)
 import Data.Word
+import Data.Maybe (fromMaybe)
 import Data.Misc
 import Data.Monoid
+import Data.Scientific (toBoundedInteger)
 import Data.String
 import Gundeck.Aws.Arn
 import Options.Applicative
 import Options.Applicative.Types
+import Data.Yaml (FromJSON(..), (.:), (.:?))
+
+import qualified Data.Yaml as Y
 
 newtype NotificationTTL = NotificationTTL
     { notificationTTLSeconds :: Word32 }
@@ -70,6 +77,46 @@ data Opts = Opts
     , _fbQueueLimit    :: !Int
     , _fbQueueBurst    :: !Word16
     }
+
+instance FromJSON Opts where
+  parseJSON (Y.Object v) =
+    Opts <$>
+    v .: "host" <*>
+    v .: "port" <*>
+    v .: "cassandra-host" <*>
+    v .: "cassandra-port" <*>
+    v .: "cassandra-keyspace" <*>
+    v .: "redis-host" <*>
+    v .: "redis-port" <*>
+    v .:? "disco-url" <*>
+    v .: "http-pool-size" <*>
+    v .: "queue-name" <*>
+    v .: "aws-region" <*>
+    v .: "aws-account" <*>
+    v .: "aws-arn-env" <*>
+    v .: "notification-ttl" <*>
+    v .: "fb-skip-fallbacks" <*>
+    v .: "fb-queue-delay" <*>
+    v .: "fb-queue-limit" <*>
+    v .: "fb-queue-burst"
+
+instance FromJSON NotificationTTL where
+  parseJSON (Y.Number n) =
+    let defaultV = 0
+        bounded = toBoundedInteger n :: Maybe Word32
+    in pure $ NotificationTTL $ fromMaybe defaultV bounded
+
+instance FromJSON ArnEnv where
+  parseJSON (Y.String str) =
+    pure $ ArnEnv str
+
+instance FromJSON Account where
+  parseJSON (Y.String str) =
+    pure $ Account str
+
+instance FromJSON Keyspace where
+  parseJSON (Y.String str) =
+    pure $ Keyspace str
 
 makeLenses ''Opts
 
