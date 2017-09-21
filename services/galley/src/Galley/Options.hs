@@ -24,12 +24,15 @@ module Galley.Options
 
 import Cassandra hiding (Error)
 import Control.Lens hiding ((.=))
+import Data.Aeson.Types (typeMismatch)
 import Data.ByteString (ByteString)
 import Data.ByteString.Char8 (pack)
 import Data.Text (Text)
+import Data.Text.Encoding (encodeUtf8)
 import Data.Word
 import Data.Misc
 import Data.Monoid
+import Data.Yaml (FromJSON(..), (.:), (.:?))
 import Network.AWS (Region (..))
 import Network.AWS.Data
 import Data.String
@@ -37,6 +40,7 @@ import Options.Applicative
 import Options.Applicative.Types
 
 import qualified Data.Text as Text
+import qualified Data.Yaml as Y
 
 data Opts = Opts
     { _hostname    :: !String
@@ -60,6 +64,44 @@ data JournalOpts = JournalOpts
     { _queueName :: !Text
     , _awsRegion :: !Region
     }
+
+instance FromJSON Opts where
+  parseJSON (Y.Object v) =
+    Opts <$>
+    v .: "host" <*>
+    v .: "port" <*>
+    v .: "cassandra-host" <*>
+    v .: "cassandra-port" <*>
+    v .: "cassandra-keyspace" <*>
+    v .: "brig-host" <*>
+    v .: "brig-port" <*>
+    v .: "gundeck-host" <*>
+    v .: "gundeck-port" <*>
+    v .:? "disco-url" <*>
+    v .: "http-pool-size" <*>
+    v .:? "journaling"
+  parseJSON v =
+    typeMismatch "options" v
+
+instance FromJSON Keyspace where
+  parseJSON (Y.String s) =
+    pure $ Keyspace s
+  parseJSON v =
+    typeMismatch "cassandra-keyspace" v
+
+instance FromJSON ByteString where
+  parseJSON (Y.String s) =
+    pure $ encodeUtf8 s
+  parseJSON v =
+    typeMismatch "string" v
+
+instance FromJSON JournalOpts where
+  parseJSON (Y.Object v) =
+    JournalOpts <$>
+    v .: "queue-name" <*>
+    v .: "aws-region"
+  parseJSON v =
+    typeMismatch "journaling" v
 
 makeLenses ''JournalOpts
 makeLenses ''Opts
