@@ -117,6 +117,7 @@ library
       , wai-routing             >= 0.12
       , wai-utilities           >= 0.16
       , warp                    >= 3.0
+      , yaml
 
 executable galley
     main-is:          src/Main.hs
@@ -126,6 +127,7 @@ executable galley
       , galley
       , galley-types
       , HsOpenSSL
+      , yaml
 
     ghc-options:
         -Wall
