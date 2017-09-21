@@ -63,6 +63,7 @@ library
         , wai-websockets        >= 3.0
         , warp                  >= 3.0
         , websockets            >= 0.11.2
+        , yaml
 
 executable cannon
     main-is:            src/Main.hs
@@ -109,3 +110,4 @@ test-suite cannon-tests
         , tasty-quickcheck >= 0.8
         , types-common
         , uuid
+        , yaml

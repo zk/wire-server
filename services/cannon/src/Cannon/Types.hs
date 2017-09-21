@@ -27,17 +27,21 @@ import Cannon.WS (Key, Websocket, Clock)
 import Control.Monad.Catch
 import Control.Monad.IO.Class
 import Control.Monad.Trans.Reader
+import Data.Aeson.Types (typeMismatch)
 import Data.ByteString (ByteString)
 import Data.ByteString.Char8 (pack)
 import Data.Metrics.Middleware
 import Data.Monoid ((<>))
+import Data.Text.Encoding (encodeUtf8)
 import Data.Word
+import Data.Yaml (FromJSON(..), (.:))
 import Network.Wai
 import Options.Applicative
 import System.Logger.Class hiding (info)
 import System.Random.MWC (GenIO)
 
 import qualified Cannon.WS     as WS
+import qualified Data.Yaml     as Y
 import qualified System.Logger as Logger
 
 -----------------------------------------------------------------------------
@@ -119,6 +123,23 @@ data Opts = Opts
     , gundeckHost  :: !ByteString
     , gundeckPort  :: !Word16
     } deriving (Eq, Show)
+
+instance FromJSON Opts where
+  parseJSON (Y.Object v) =
+    Opts <$>
+    v .: "host" <*>
+    v .: "external-host" <*>
+    v .: "port" <*>
+    v .: "gundeck-host" <*>
+    v .: "gundeck-port"
+  parseJSON v =
+    typeMismatch "object" v
+
+instance FromJSON ByteString where
+  parseJSON (Y.String s) =
+    pure $ encodeUtf8 s
+  parseJSON v =
+    typeMismatch "string" v
 
 parseOptions :: IO Opts
 parseOptions = execParser (info (helper <*> optsParser) desc)
