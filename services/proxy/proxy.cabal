@@ -51,11 +51,15 @@ library
         , wai-routing          >= 0.12
         , wai-utilities        >= 0.14.3
         , warp                 >= 3.0
+        , yaml
 
 executable proxy
     main-is:          src/Main.hs
     default-language: Haskell2010
     ghc-options:      -Wall -O2 -fwarn-tabs -threaded -rtsopts -with-rtsopts=-T
-    build-depends:    base, proxy
+    build-depends:
+          base
+        , proxy
+        , yaml
     if flag(static)
         ld-options: -static

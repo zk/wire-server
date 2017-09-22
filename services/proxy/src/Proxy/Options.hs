@@ -14,7 +14,10 @@ module Proxy.Options
 import Control.Lens
 import Data.Monoid
 import Data.Word
+import Data.Yaml (FromJSON(..), (.:), (.:?))
 import Options.Applicative
+
+import qualified Data.Yaml as Y
 
 data Opts = Opts
     { _hostname     :: !String
@@ -25,6 +28,15 @@ data Opts = Opts
     }
 
 makeLenses ''Opts
+
+instance FromJSON Opts where
+  parseJSON (Y.Object v) =
+    Opts <$>
+    v .: "host" <*>
+    v .: "port" <*>
+    v .: "config" <*>
+    v .: "http-pool-size" <*>
+    v .: "max-conns"
 
 parseOptions :: IO Opts
 parseOptions = execParser (info (helper <*> optsParser) desc)
