@@ -28,11 +28,13 @@ import Data.Functor.Identity
 import Data.List (sortBy)
 import Data.List.Split (splitOn)
 import Data.Monoid ((<>))
-import Data.Text (Text, pack, intercalate)
+import Data.Scientific (toBoundedInteger)
+import Data.Text (Text, pack, unpack, intercalate)
 import Data.Text.Lazy (fromStrict)
 import Data.Text.Lazy.Builder (fromText, fromString, toLazyText)
 import Data.Time.Clock
 import Data.Word
+import Data.Yaml (FromJSON(..), (.:))
 import Database.CQL.IO
 import Database.CQL.Protocol (Request (..), Query (..), Response(..), Result (..))
 import Options.Applicative hiding (info)
@@ -40,6 +42,7 @@ import Prelude hiding (log)
 import System.Logger (Logger, Level (..), log, msg)
 
 import qualified Data.Text.Lazy as LT
+import qualified Data.Yaml      as Y
 
 data Migration = Migration
     { migVersion :: Int32
@@ -188,6 +191,26 @@ migrationPolicy = do
   where
     setHost h (a:_) _ = writeIORef h (Just a)
     setHost _    _  _ = return ()
+
+instance FromJSON MigrationOpts where
+  parseJSON (Y.Object v) =
+    MigrationOpts <$>
+    v .: "host" <*>
+    v .: "port" <*>
+    v .: "keyspace" <*>
+    v .: "replication-strategy" <*>
+    v .: "reset"
+
+instance FromJSON ReplicationStrategy where
+  parseJSON (Y.Number n) =
+    let bounded = toBoundedInteger n :: Maybe Word16
+    in pure $ SimpleStrategy $ ReplicationFactor $ fromMaybe 0 bounded
+  parseJSON (Y.String s) =
+    pure $ NetworkTopologyStrategy $ read $ unpack s
+
+instance FromJSON Keyspace where
+  parseJSON (Y.String s) =
+    pure $ Keyspace s
 
 migrationOptsParser :: Parser MigrationOpts
 migrationOptsParser = MigrationOpts

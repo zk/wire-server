@@ -34,10 +34,11 @@ library
       , lens-aeson           >= 1.0
       , optparse-applicative >= 0.10
       , semigroups           >= 0.15
+      , scientific
       , split                >= 0.2
       , text                 >= 0.11
       , time                 >= 1.4
       , transformers         >= 0.3
       , tinylog              >= 0.7
       , wreq                 >= 0.2
-
+      , yaml

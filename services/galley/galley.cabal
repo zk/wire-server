@@ -157,6 +157,7 @@ executable galley-schema
       , raw-strings-qq       >= 1.0
       , text
       , tinylog
+      , yaml
 
     if flag(static)
         ld-options: -static

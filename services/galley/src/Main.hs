@@ -11,7 +11,7 @@ decodeConfigFile = decodeFileEither
 
 main :: IO ()
 main = withOpenSSL $ do
-  configFile <- decodeConfigFile "galley.yaml"
+  configFile <- decodeConfigFile "/etc/wire/galley.yaml"
   case configFile of
     -- TODO: report config file errors
     Left _ -> parseOptions >>= run

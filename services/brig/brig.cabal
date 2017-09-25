@@ -145,7 +145,7 @@ library
       , resourcet                 >= 1.1
       , ropes                     >= 0.4.20
       , safe                      >= 0.3
-      , scientific                >= 0.3.5
+      , scientific                >= 0.3.4
       , scrypt                    >= 0.5
       , semigroups                >= 0.15
       , singletons                >= 2.0
