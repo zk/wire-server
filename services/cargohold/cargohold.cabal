@@ -24,6 +24,7 @@ library
 
     exposed-modules:
         CargoHold.API
+        CargoHold.Options
 
     other-modules:
         CargoHold.App
@@ -33,7 +34,6 @@ library
         CargoHold.API.V3.Resumable
         CargoHold.CloudFront
         CargoHold.Metrics
-        CargoHold.Options
         CargoHold.S3
         CargoHold.TUS
 

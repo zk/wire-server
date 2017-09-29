@@ -76,7 +76,10 @@ executable cannon
         -fwarn-tabs
         "-with-rtsopts=-N -T -M1g -ki4k"
 
-    build-depends: base, cannon
+    build-depends:
+          base
+        , cannon
+        , yaml
 
     if flag(static)
         ld-options: -static
