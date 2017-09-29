@@ -251,6 +251,7 @@ executable brig-schema
       , raw-strings-qq       >= 1.0
       , text
       , tinylog              >= 0.10
+      , yaml
 
 executable brig-index
     main-is:            Main.hs

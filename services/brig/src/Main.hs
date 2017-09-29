@@ -12,7 +12,7 @@ decodeConfigFile = decodeFileEither
 
 main :: IO ()
 main = withOpenSSL $ do
-  configFile <- decodeConfigFile "brig.yaml"
+  configFile <- decodeConfigFile "/etc/wire/brig.yaml"
   case configFile of
     -- TODO: report config file errors
     Left _ -> parseOptions >>= runServer

@@ -143,6 +143,7 @@ migrateSchema l o ms = do
           . setPoolStripes 1
           . setPolicy migrationPolicy
           . setProtocolVersion V3
+          . setResponseTimeout 30
           $ defSettings
     runClient p $ do
         when (migReset o) $ do
