@@ -16,14 +16,15 @@ RUN cd /src/services/${service} && make install
 FROM wire-server-deps:alpine
 
 ARG service
-COPY --from=builder /src/services/${service}/dist/${service} /usr/local/bin/
-COPY --from=builder /src/services/${service}/dist/${service}-schema /usr/local/bin/
-COPY --from=builder /src/services/${service}/dist/${service}-integration /usr/local/bin/
+COPY --from=builder /src/services/${service}/dist/ /usr/bin/
 
 COPY --from=builder /src/services/${service}/${service}.yaml /etc/wire/
 COPY --from=builder /src/services/${service}/${service}-schema.yaml /etc/wire/
 
+# TODO: hack to get the brig templates copied
+#COPY --from=builder /src/services/${service}/deb/opt/brig/templates/ /usr/share/wire/templates/
+
 # ARGs are not available at runtime, create symlink at build time
 # more info: https://stackoverflow.com/questions/40902445/using-variable-interpolation-in-string-in-docker
-RUN ln -s /usr/local/bin/${service} /usr/local/bin/service
-ENTRYPOINT ["/usr/local/bin/service"]
+RUN ln -s /usr/bin/${service} /usr/bin/service
+ENTRYPOINT ["/usr/bin/service"]
