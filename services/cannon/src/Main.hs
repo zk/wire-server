@@ -9,7 +9,7 @@ decodeConfigFile = decodeFileEither
 
 main :: IO ()
 main = do
-  configFile <- decodeConfigFile "cannon.yaml"
+  configFile <- decodeConfigFile "/etc/wire/cannon.yaml"
   case configFile of
     -- TODO: report config file errors
     Left _ -> parseOptions >>= run

@@ -283,8 +283,7 @@ executable brig-index
       , types-common
       , uri-bytestring
 
-test-suite brig-integration
-    type:               exitcode-stdio-1.0
+executable brig-integration
     default-language:   Haskell2010
     main-is:            Main.hs
     hs-source-dirs:     test/integration
@@ -357,4 +356,5 @@ test-suite brig-integration
       , warp
       , warp-tls              >= 3.2
       , zauth
+      , yaml
 

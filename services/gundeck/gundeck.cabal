@@ -162,6 +162,7 @@ executable gundeck-schema
         , raw-strings-qq
         , text
         , tinylog
+        , yaml
 
     if flag(static)
         ld-options: -static

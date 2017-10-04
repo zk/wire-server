@@ -11,7 +11,7 @@ decodeConfigFile = decodeFileEither
 
 main :: IO ()
 main = withOpenSSL $ do
-  configFile <- decodeConfigFile "gundeck.yaml"
+  configFile <- decodeConfigFile "/etc/wire/gundeck.yaml"
   case configFile of
     -- TODO: report config file errors
     Left _ -> Options.parseOptions >>= Api.run

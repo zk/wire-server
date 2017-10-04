@@ -1,7 +1,8 @@
 {-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE TupleSections              #-}
+{-# LANGUAGE DeriveGeneric              #-}
 
-module API (tests, ConnectionLimit (..)) where
+module API (tests, ConnectionLimit (..), Config) where
 
 import Bilge hiding (accept, timeout)
 import Bilge.Assert
@@ -32,7 +33,9 @@ import Data.Monoid ((<>))
 import Data.Range (unsafeRange)
 import Data.Text (Text)
 import Data.Vector (Vector)
+import Data.Word
 import Galley.Types
+import GHC.Generics
 import Gundeck.Types.Notification
 import Gundeck.Types.Push.V2
 import OpenSSL.EVP.Digest (getDigestByName, digestBS)
@@ -58,11 +61,18 @@ import qualified Data.Vector                 as Vec
 import qualified Network.Wai.Utilities.Error as Error
 import qualified Test.Tasty.Cannon           as WS
 
-newtype ConnectionLimit = ConnectionLimit Int64
+newtype ConnectionLimit = ConnectionLimit Word16
 
-tests :: Manager -> Brig -> Cannon -> Galley -> IO TestTree
-tests p b c g = do
-    l <- ConnectionLimit . read <$> getEnv "USER_CONNECTION_LIMIT"
+data Config = Config
+    { connection_limit :: Word16
+    } deriving (Show, Generic)
+
+instance FromJSON Config where
+
+tests :: Config -> Manager -> Brig -> Cannon -> Galley -> IO TestTree
+tests conf p b c g = do
+    -- TODO: pass in whole config
+    let l = ConnectionLimit (connection_limit conf)
     return $ testGroup "user"
         [ testGroup "account"
             [ test p "post /register - 201"                     $ testCreateUser b g

@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE DeriveGeneric              #-}
 
-module API.User.Auth (tests) where
+module API.User.Auth (tests, Config) where
 
 import Bilge hiding (body)
 import Bilge.Assert hiding (assert)
@@ -25,6 +26,7 @@ import Data.Monoid
 import Data.Text (Text)
 import Data.Text.Encoding (encodeUtf8)
 import Data.Time.Clock
+import GHC.Generics
 import System.Environment
 import System.Logger (Logger)
 import System.Random (randomIO)
@@ -42,9 +44,28 @@ import qualified Data.UUID.V4         as UUID
 
 import qualified Network.Wai.Utilities.Error as Error
 
-tests :: Manager -> Logger -> Brig -> IO TestTree
-tests m _ b = do
-    z <- mkZAuthEnv
+data CookieConfig = CookieConfig
+    { limit     :: Int
+    , renew_age :: Int
+    } deriving (Show, Generic)
+
+data ZauthConfig = ZauthConfig
+    { pubkeys  :: FilePath
+    , privkeys :: FilePath
+    } deriving (Show, Generic)
+
+data Config = Config
+    { user_cookie :: CookieConfig
+    , zauth       :: ZauthConfig
+    } deriving (Show, Generic)
+
+instance FromJSON CookieConfig where
+instance FromJSON ZauthConfig where
+instance FromJSON Config where
+
+tests :: Config -> Manager -> Logger -> Brig -> IO TestTree
+tests conf m _ b = do
+    z <- mkZAuthEnv conf
     return $ testGroup "auth"
         [ testGroup "login"
             [ test m "email" (testEmailLogin b)
@@ -53,21 +74,21 @@ tests m _ b = do
             , test m "email-untrusted-domain" (testLoginUntrustedDomain b)
             , test m "send-phone-code" (testSendLoginCode b)
             , test m "failure" (testLoginFailure b)
-            , test m "throttle" (testThrottleLogins b)
+            , test m "throttle" (testThrottleLogins conf b)
             ]
         , testGroup "refresh"
             [ test m "invalid-cookie" (testInvalidCookie z b)
             , test m "invalid-token" (testInvalidToken b)
             , test m "missing-cookie" (testMissingCookie z b)
             , test m "unknown-cookie" (testUnknownCookie z b)
-            , test m "new-persistent-cookie" (testNewPersistentCookie b)
-            , test m "new-session-cookie" (testNewSessionCookie b)
+            , test m "new-persistent-cookie" (testNewPersistentCookie conf b)
+            , test m "new-session-cookie" (testNewSessionCookie conf b)
             ]
         , testGroup "cookies"
             [ test m "list" (testListCookies b)
             , test m "remove-by-label" (testRemoveCookiesByLabel b)
             , test m "remove-by-label-id" (testRemoveCookiesByLabelAndId b)
-            , test m "limit" (testTooManyCookies b)
+            , test m "limit" (testTooManyCookies conf b)
             , test m "logout" (testLogout b)
             ]
         , testGroup "reauth"
@@ -75,19 +96,13 @@ tests m _ b = do
             ]
         ]
 
-envCookieLimit :: MonadIO m => m CookieLimit
-envCookieLimit = liftIO $ CookieLimit . read <$> getEnv "USER_COOKIE_LIMIT"
-
-envCookieRenewAge :: MonadIO m => m Int
-envCookieRenewAge = liftIO $ read <$> getEnv "USER_COOKIE_RENEW_AGE"
-
 --------------------------------------------------------------------------------
 -- ZAuth test environment for generating arbitrary tokens.
 
-mkZAuthEnv :: IO ZAuth.Env
-mkZAuthEnv = do
-    Just (sk :| sks) <- ZAuth.readKeys =<< getEnv "ZAUTH_PRIVKEYS"
-    Just (pk :| pks) <- ZAuth.readKeys =<< getEnv "ZAUTH_PUBKEYS"
+mkZAuthEnv :: Config -> IO ZAuth.Env
+mkZAuthEnv config = do
+    Just (sk :| sks) <- ZAuth.readKeys (privkeys . zauth $ config)
+    Just (pk :| pks) <- ZAuth.readKeys (pubkeys . zauth $ config)
     ZAuth.mkEnv (sk :| sks) (pk :| pks) ZAuth.defSettings
 
 randomAccessToken :: ZAuth ZAuth.AccessToken
@@ -238,9 +253,9 @@ testLoginFailure brig = do
                 const 403                          === statusCode
                 const (Just "invalid-credentials") === fmap Error.label . decodeBody
 
-testThrottleLogins :: Brig -> Http ()
-testThrottleLogins b = do
-    CookieLimit l <- envCookieLimit
+testThrottleLogins :: Config -> Brig -> Http ()
+testThrottleLogins conf b = do
+    let l = limit . user_cookie $ conf
     u <- randomUser b
     let Just e = userEmail u
     replicateM_ l (login b (defEmailLogin e) SessionCookie)
@@ -307,10 +322,10 @@ testUnknownCookie z r = do
         const 403 === statusCode
         const (Just "invalid-credentials") =~= responseBody
 
-testNewPersistentCookie :: Brig -> Http ()
-testNewPersistentCookie b = do
+testNewPersistentCookie :: Config -> Brig -> Http ()
+testNewPersistentCookie config b = do
     u <- randomUser b
-    minAge <- (* 1000000) . (+1) <$> envCookieRenewAge
+    let minAge = (renew_age . user_cookie) config * 1000000 + 1
     let Just email = userEmail u
     _rs <- login b (emailLogin email defPassword (Just "nexus1")) PersistentCookie
         <!! const 200 === statusCode
@@ -358,10 +373,10 @@ testNewPersistentCookie b = do
         [PersistentCookie] @=? map cookieType _cs
         [Nothing] @=? map cookieSucc _cs
 
-testNewSessionCookie :: Brig -> Http ()
-testNewSessionCookie b = do
+testNewSessionCookie :: Config -> Brig -> Http ()
+testNewSessionCookie config b = do
     u <- randomUser b
-    minAge <- (* 1000000) . (+1) <$> envCookieRenewAge
+    let minAge = (renew_age . user_cookie) config * 1000000 + 1
     let Just email = userEmail u
     _rs <- login b (emailLogin email defPassword (Just "nexus1")) SessionCookie
         <!! const 200 === statusCode
@@ -439,9 +454,9 @@ testRemoveCookiesByLabelAndId b = do
     let lbl = cookieLabel c4
     listCookies b (userId u) >>= liftIO . ([lbl] @=?) . map cookieLabel
 
-testTooManyCookies :: Brig -> Http ()
-testTooManyCookies b = do
-    CookieLimit l <- envCookieLimit
+testTooManyCookies :: Config -> Brig -> Http ()
+testTooManyCookies config b = do
+    let l = limit . user_cookie $ config
     u <- randomUser b
     let Just e = userEmail u
     let carry = 4
