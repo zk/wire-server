@@ -8,7 +8,7 @@
 FROM wire-server-builder:alpine as builder
 
 ARG service
-COPY . /src/wire-server
+COPY . /src/wire-server/
 
 RUN cd /src/wire-server/services/${service} && make install
 
