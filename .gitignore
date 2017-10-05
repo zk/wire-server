@@ -30,4 +30,6 @@ services/nginz/src
 services/.env
 tools/api-simulations/mailboxes.json
 tools/api-simulations/reports
-services/galley/galley.yaml
+galley.yaml
+galley-schema.yaml
+integration.yaml

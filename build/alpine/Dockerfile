@@ -33,7 +33,7 @@ COPY --from=builder /src/wire-server/services/${service}/${service}.yaml /etc/wi
 COPY --from=builder /src/wire-server/services/${service}/${service}-schema.yaml /etc/wire/
 
 # TODO: hack to get the brig templates copied
-COPY --from=builder /src/wire-server/services/${service}/deb/opt/brig/templates/ /usr/share/wire/templates/
+COPY --from=builder /src/wire-server/services/brig/deb/opt/brig/templates/ /usr/share/wire/templates/
 
 # TODO: move integration conf to common location
 COPY --from=builder /src/wire-server/services/${service}/integration.yaml /etc/wire/
