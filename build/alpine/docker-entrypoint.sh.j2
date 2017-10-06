@@ -4,12 +4,12 @@ set +e
 
 case "$1" in
     '')
-        exec /usr/bin/{{service}} --help
+        exec /usr/bin/{{executable}} --help
         ;;
 
-    {{service}})
+    {{executable}})
         shift
-        exec /usr/bin/{{service}} "$@"
+        exec /usr/bin/{{executable}} "$@"
         ;;
     
     *)

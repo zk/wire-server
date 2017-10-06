@@ -8,6 +8,8 @@
 FROM wire-server-builder:alpine as builder
 
 ARG service
+ARG executable
+
 COPY . /src/wire-server/
 
 RUN cd /src/wire-server/services/${service} && make install
@@ -20,13 +22,15 @@ RUN apk add --no-cache \
 # ARGs are not available at runtime, use a j2 template to write an entrypoint specific to this service.
 # As the bash script uses exec, we can see which service is run as PID 1
 # more info: https://stackoverflow.com/questions/40902445/using-variable-interpolation-in-string-in-docker
-RUN jinja2 -D service=${service} /src/wire-server/build/alpine/docker-entrypoint.sh.j2 > /src/docker-entrypoint.sh
+RUN jinja2 -D service=${service} -D executable=${executable} /src/wire-server/build/alpine/docker-entrypoint.sh.j2 > /src/docker-entrypoint.sh
 
 #--- Minified stage ---
 FROM wire-server-deps:alpine
 
 ARG service
-COPY --from=builder /src/wire-server/services/${service}/dist/* /usr/bin/
+ARG executable
+
+COPY --from=builder /src/wire-server/services/${service}/dist/${executable} /usr/bin/${exectuable}
 
 COPY --from=builder /src/wire-server/services/${service}/${service}.yaml /etc/wire/
 # TODO: only some projects do schema migration
