@@ -13,15 +13,19 @@ COPY . /src/wire-server/
 
 RUN cd /src/wire-server/services/${service} && make install
 
-RUN apk add --no-cache \
-        python \
-        py-pip && \
-    pip install jinja2-cli[yaml]
+#--- Entrypoint maker stage ---
+FROM builder as entrypoint
+
+ARG service
+ARG executable
 
 # ARGs are not available at runtime, use a j2 template to write an entrypoint specific to this service.
 # As the bash script uses exec, we can see which service is run as PID 1
 # more info: https://stackoverflow.com/questions/40902445/using-variable-interpolation-in-string-in-docker
-RUN for exe_fullpath in /src/wire-server/services/${service}/dist/*; do exe=$(basename $exe_fullpath); jinja2 -D service=${service} -D executable=${exe} /src/wire-server/build/alpine/docker-entrypoint.sh.j2 > /src/docker-entrypoint_${exe}.sh; done
+RUN jinja2 -D service=${service} \
+           -D executable=${executable} \
+           /src/wire-server/build/alpine/docker-entrypoint.sh.j2 \
+        > /src/docker-entrypoint.sh
 
 #--- Minified stage ---
 FROM wire-server-deps:alpine
@@ -41,7 +45,7 @@ COPY --from=builder /src/wire-server/services/brig/deb/opt/brig/templates/ /usr/
 # TODO: move integration conf to common location
 COPY --from=builder /src/wire-server/services/${service}/integration.yaml /etc/wire/
 
-COPY --from=builder /src/docker-entrypoint_${executable}.sh /docker-entrypoint.sh
+COPY --from=entrypoint /src/docker-entrypoint.sh /
 RUN chmod +x /docker-entrypoint.sh
 
 ENTRYPOINT ["/docker-entrypoint.sh"]

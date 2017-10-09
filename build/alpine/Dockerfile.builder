@@ -29,7 +29,10 @@ RUN apk add --no-cache \
         geoip-dev \
         snappy-dev \
         llvm-libunwind-dev \
-        bash
+        bash \
+        python \
+        py-pip && \
+    pip install jinja2-cli[yaml]
 
 # get static version of Haskell Stack and use system ghc by default
 ARG STACK_VERSION=1.5.1
