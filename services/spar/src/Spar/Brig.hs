@@ -1,3 +1,4 @@
+{-# LANGUAGE ConstraintKinds            #-}
 {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
@@ -11,10 +12,10 @@ module Spar.Brig where
 -- TODO: when creating user, we need to be able to provide more
 -- master data (first name, last name, ...)
 
-import Bilge
 import Control.Monad.Except
 import Data.String.Conversions
 
+import qualified Bilge
 import qualified Brig.Types.User as Brig
 import qualified Data.Id as Brig
 import qualified SAML2.WebSSO as SAML
@@ -32,11 +33,16 @@ fromUserSSOId (Brig.UserSSOId (cs -> tenant) (cs -> subject)) =
     (_, Left msg)      -> throwError msg
 
 
-getUser :: MonadHttp m => SAML.UserId -> m (Maybe Brig.UserId)
+class Monad m => MonadSparToBrig m where
+  call :: (Bilge.Request -> Bilge.Request) -> m (Bilge.Response (Maybe LBS))
+
+
+getUser :: (MonadSparToBrig m) => SAML.UserId -> m (Maybe Brig.UserId)
 getUser = undefined
 
-createUser :: MonadHttp m => SAML.UserId -> m Brig.UserId
+createUser :: (MonadSparToBrig m) => SAML.UserId -> m Brig.UserId
 createUser = undefined
 
-forwardBrigLogin :: MonadHttp m => Brig.UserId -> m SAML.Void
+-- | Get session token from brig and redirect user past login process.
+forwardBrigLogin :: (MonadSparToBrig m) => Brig.UserId -> m SAML.Void
 forwardBrigLogin = undefined

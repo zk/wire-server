@@ -18,6 +18,7 @@ import GHC.Stack
 import Network.HTTP.Client (responseTimeoutMicro)
 import Servant
 import Spar.App
+import Spar.Brig
 import Spar.Options
 import Util.Options (epHost, epPort)
 
@@ -68,5 +69,5 @@ api =  pure ()
 appName :: ST.Text
 appName = "spar"
 
-onSuccess :: (HasCallStack, MonadSpar m) => SAML.UserId -> m SAML.Void
+onSuccess :: (HasCallStack, MonadSparToBrig m) => SAML.UserId -> m SAML.Void
 onSuccess uid = forwardBrigLogin =<< maybe (createUser uid) pure =<< getUser uid

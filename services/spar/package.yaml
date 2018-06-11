@@ -20,6 +20,8 @@ dependencies:
   - cassandra-util
   - containers
   - exceptions  # (for MonadClient, which in turn needs MonadCatch)
+  - http-types
+  - http-client
   - lens
   - mtl
   - raw-strings-qq
