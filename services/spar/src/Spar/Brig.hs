@@ -4,6 +4,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE ScopedTypeVariables        #-}
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE ViewPatterns               #-}
 
@@ -14,8 +15,9 @@ module Spar.Brig where
 
 import Control.Monad.Except
 import Data.String.Conversions
+import Bilge
+import Network.HTTP.Types.Method
 
-import qualified Bilge
 import qualified Brig.Types.User as Brig
 import qualified Data.Id as Brig
 import qualified SAML2.WebSSO as SAML
@@ -34,14 +36,24 @@ fromUserSSOId (Brig.UserSSOId (cs -> tenant) (cs -> subject)) =
 
 
 class Monad m => MonadSparToBrig m where
-  call :: (Bilge.Request -> Bilge.Request) -> m (Bilge.Response (Maybe LBS))
+  call :: (Request -> Request) -> m (Response (Maybe LBS))
 
 
 getUser :: (MonadSparToBrig m) => SAML.UserId -> m (Maybe Brig.UserId)
-getUser = undefined
+getUser uid = do
+  resp :: Response (Maybe LBS) <- call
+    $ method GET
+    . path ("/i/user/by-ssoid/" <> cs (show uid))  -- TODO: does anything like this exist?
+  if statusCode resp == 200
+    then do
+      undefined  -- parse body and return user id from brig.  if parsing fails, log a warning and
+                 -- return Nothing.
+        -- (what should the body look like?  a full 'User' object?)
+    else do
+      pure Nothing
 
 createUser :: (MonadSparToBrig m) => SAML.UserId -> m Brig.UserId
-createUser = undefined
+createUser _ = undefined
 
 -- | Get session token from brig and redirect user past login process.
 forwardBrigLogin :: (MonadSparToBrig m) => Brig.UserId -> m SAML.Void
