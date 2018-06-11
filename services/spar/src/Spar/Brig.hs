@@ -8,8 +8,12 @@
 
 module Spar.Brig where
 
+-- TODO: when creating user, we need to be able to provide more
+-- master data (first name, last name, ...)
+
+import Bilge
 import Control.Monad.Except
-import Data.String.Conversions (ST, cs)
+import Data.String.Conversions
 
 import qualified Brig.Types.User as Brig
 import qualified Data.Id as Brig
@@ -28,16 +32,11 @@ fromUserSSOId (Brig.UserSSOId (cs -> tenant) (cs -> subject)) =
     (_, Left msg)      -> throwError msg
 
 
-class MonadBrigClient (m :: * -> *)  -- no, use runHttpT
-  reqGet :: (ToJSON reqbody, FromJSON respbody) => [ST] -> reqbody -> m respbody
-
-
-getUser :: MonadBrigClient m => SAML.UserId -> m (Maybe Brig.UserId)
+getUser :: MonadHttp m => SAML.UserId -> m (Maybe Brig.UserId)
 getUser = undefined
 
--- TODO: first name, last name, ...?
-createUser :: MonadBrigClient m => SAML.UserId -> m Brig.UserId
+createUser :: MonadHttp m => SAML.UserId -> m Brig.UserId
 createUser = undefined
 
-forwardBrigLogin :: MonadBrigClient m => Brig.UserId -> m SAML.Void
+forwardBrigLogin :: MonadHttp m => Brig.UserId -> m SAML.Void
 forwardBrigLogin = undefined

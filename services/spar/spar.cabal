@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 7304968871df16527702420ef2af5760820955680ae6495542c11c5c0c333899
+-- hash: 49b6f7264e6555e66b42317e9efb9cc144b456bdaa24283b7891bbab82e14c20
 
 name:           spar
 version:        0.1
@@ -32,6 +32,7 @@ library
   build-depends:
       aeson
     , base
+    , bilge
     , brig-types
     , bytestring
     , cassandra-util
@@ -64,6 +65,7 @@ executable spar
   build-depends:
       aeson
     , base
+    , bilge
     , brig-types
     , bytestring
     , cassandra-util
@@ -99,6 +101,7 @@ executable spar-integration
   build-depends:
       aeson
     , base
+    , bilge
     , brig-types
     , bytestring
     , cassandra-util
@@ -135,6 +138,7 @@ executable spar-schema
   build-depends:
       aeson
     , base
+    , bilge
     , brig-types
     , bytestring
     , cassandra-util
@@ -174,6 +178,7 @@ test-suite spec
       QuickCheck
     , aeson
     , base
+    , bilge
     , brig-types
     , bytestring
     , cassandra-util

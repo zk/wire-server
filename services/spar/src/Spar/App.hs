@@ -7,6 +7,7 @@
 
 module Spar.App where
 
+import Bilge
 import Cassandra
 import Control.Exception (SomeException(SomeException))
 import Control.Lens hiding (Level)
@@ -47,9 +48,11 @@ class Monad m => MonadSpar m where
 
 
 data SparCtx = SparCtx
-  { sparCtxOpts   :: Opts
-  , sparCtxLogger :: Log.Logger
-  , sparCtxCas    :: Cas.ClientState
+  { sparCtxOpts         :: Opts
+  , sparCtxLogger       :: Log.Logger
+  , sparCtxCas          :: Cas.ClientState
+  , sparCtxHttpManager  :: Bilge.Manager
+  , sparCtxHttpBrig     :: Bilge.Request
   }
 
 newtype Spar a = Spar { fromSpar :: ReaderT SparCtx Handler a }
@@ -103,7 +106,10 @@ instance SPHandler Spar where
   nt ctx (Spar action) = runReaderT action ctx
 
 
-instance Brig.MonadClient Spar
+instance MonadHttp Spar where
+  getManager = asks sparCtxHttpManager
+
+@@ -- think for a few minutes if we can change MonadHttp so that everything everywhere works as before, but we can abstract over it better.
 
 instance MonadSpar Spar where
   getUser          = Brig.getUser

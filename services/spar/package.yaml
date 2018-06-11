@@ -14,6 +14,7 @@ ghc-options: -j -O2 -Wall -Wno-redundant-constraints -fwarn-tabs -Werror
 dependencies:
   - aeson
   - base
+  - bilge
   - brig-types
   - bytestring
   - cassandra-util
