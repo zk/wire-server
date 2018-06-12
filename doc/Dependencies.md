@@ -12,7 +12,7 @@ In addition to the information below, you can also consult the Dockerfiles for A
 #### Fedora:
 
 ```bash
-sudo yum install pkgconfig haskell-platform libstdc++-devel libstdc++-static gcc-c++ libtool automake openssl-devel libsodium-devel ncurses-compat-libs libicu-devel -y
+sudo yum install pkgconfig haskell-platform libstdc++-devel libstdc++-static gcc-c++ libtool automake openssl-devel libsodium-devel ncurses-compat-libs libicu-devel protobuf-compiler -y
 ```
 
 #### Debian:
